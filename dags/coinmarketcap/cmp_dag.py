@@ -34,11 +34,11 @@ def coinmarketdag():
     @task(task_id="GetLatests")
     def get_latests_data():
         data = cmc_api.get_latests()
-        return data
+        return data[:5]
 
     @task(task_id="ParseData")
     def deparse_cmc_data(data):
-        print(data)
+        print(data[:3])
 
     start = DummyOperator(task_id="Start")
     end = DummyOperator(task_id="End")
