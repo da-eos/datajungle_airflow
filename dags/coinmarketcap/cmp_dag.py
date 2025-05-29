@@ -34,6 +34,7 @@ def coinmarketdag():
     @task(task_id="GetLatests")
     def get_latests_data():
         data = cmc_api.get_latests()
+        data = data["data"]
         return data[:5]
 
     @task(task_id="ParseData")
