@@ -74,6 +74,7 @@ def coinmarketdag():
     end = DummyOperator(task_id="End")
     data = get_latests_data()
     deparsed = deparse_cmc_data(data)
+
     insert = insert_data(deparsed)
 
     start >> data >> deparsed >> insert_data >> end
