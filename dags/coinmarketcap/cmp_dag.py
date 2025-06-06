@@ -5,6 +5,7 @@ from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from coinmarketcap.cmp_utils import CoinMarketCapAPI
+from psycopg2.extras import execute_values
 
 default_args = {
     "owner": "DataJungle",
@@ -58,10 +59,14 @@ def coinmarketdag():
         pg_hook = PostgresHook(postgres_conn_id=PG_CONNECT)
         fields = tuple(data_to_insert[0].keys()) if data_to_insert else None
         print(fields)
+        tuple_values = []
+        for d in data_to_insert:
+            row = tuple(d.get(key) for key in d)
+            tuple_values.append(row)
         try:
             pg_hook.insert_rows(
                 table="raw_data.coinmarket_data",
-                rows=data_to_insert,
+                rows=tuple_values,
                 target_fields=fields,
                 commit_every=50,
             )
