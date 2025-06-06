@@ -77,7 +77,7 @@ def coinmarketdag():
 
     insert = insert_data(deparsed)
 
-    start >> data >> deparsed >> insert_data >> end
+    start >> data >> deparsed >> insert >> end
 
 
 cmc_dag = coinmarketdag()
