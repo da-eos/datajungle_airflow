@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from airflow.decorators import dag, task
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 from coinmarketcap.cmp_utils import CoinMarketCapAPI
 
 default_args = {
@@ -15,6 +16,7 @@ default_args = {
 
 COINCAP_API_KEY = Variable.get("COINCAP_API_KEY")
 DAG_ID = "CoinMarketCapDAG"
+PG_CONNECT = "POSTGRES_DB"
 
 
 @dag(
@@ -34,19 +36,47 @@ def coinmarketdag():
     @task(task_id="GetLatests")
     def get_latests_data():
         data = cmc_api.get_latests()
-        data = data["data"]
-        return data[:5]
+        data = data.get("data", [])
+        return data
 
     @task(task_id="ParseData")
     def deparse_cmc_data(data):
-        print(data[:3])
+        result = []
+        for item in data:
+            d = {}
+            d["name"] = item.get("name")
+            d["symbol"] = item.get("symbol")
+            d["num_market_pairs"] = item.get("num_market_pairs")
+            d["date_added"] = item.get("date_added")
+            d["usdt_price"] = item.get("quote", {}).get("price")
+            d["cmc_rank"] = item.get("cmc_rank")
+            result.append(d)
+        return result
+
+    @task(task_id="InsertDatas")
+    def insert_data(data_to_insert):
+        pg_hook = PostgresHook(postgres_conn_id=PG_CONNECT)
+        fields = tuple(data_to_insert[0].keys()) if data_to_insert else None
+        print(fields)
+        try:
+            pg_hook.insert_rows(
+                table="raw_data.coinmarket_data",
+                rows=data_to_insert,
+                target_fields=fields,
+                commit_every=50,
+            )
+            return "Data inserted"
+        except Exception as e:
+            print(f"error {e}")
+            return e
 
     start = DummyOperator(task_id="Start")
     end = DummyOperator(task_id="End")
     data = get_latests_data()
     deparsed = deparse_cmc_data(data)
+    insert = insert_data(deparsed)
 
-    start >> data >> deparsed >> end
+    start >> data >> deparsed >> insert_data >> end
 
 
 cmc_dag = coinmarketdag()
