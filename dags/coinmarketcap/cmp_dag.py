@@ -4,7 +4,7 @@ from airflow.decorators import dag, task
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from psycopg2.extras import execute_values
+from coinmarketcap.cmp_utils import CoinMarketCapAPI
 
 default_args = {
     "owner": "DataJungle",
