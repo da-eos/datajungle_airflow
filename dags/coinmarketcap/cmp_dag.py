@@ -48,7 +48,7 @@ def coinmarketdag():
             d["symbol"] = item.get("symbol")
             d["num_market_pairs"] = item.get("num_market_pairs")
             d["date_added"] = item.get("date_added")
-            d["usdt_price"] = item.get("quote", {}).get("price")
+            d["usdt_price"] = item.get("quote", {}).get("USDT", {}).get("price")
             d["cmc_rank"] = item.get("cmc_rank")
             result.append(d)
         return result
