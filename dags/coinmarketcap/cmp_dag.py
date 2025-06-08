@@ -4,7 +4,6 @@ from airflow.decorators import dag, task
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from coinmarketcap.cmp_utils import CoinMarketCapAPI
 from psycopg2.extras import execute_values
 
 default_args = {
@@ -54,12 +53,34 @@ def coinmarketdag():
             result.append(d)
         return result
 
+    @task(task_id="InsertDatas")
+    def insert_data(data_to_insert):
+        pg_hook = PostgresHook(postgres_conn_id=PG_CONNECT)
+        fields = tuple(data_to_insert[0].keys()) if data_to_insert else None
+        print(fields)
+        tuple_values = []
+        for d in data_to_insert:
+            row = tuple(d.values())
+            tuple_values.append(row)
+        try:
+            pg_hook.insert_rows(
+                table="raw_data.coinmarket_data",
+                rows=tuple_values,
+                target_fields=fields,
+                commit_every=50,
+            )
+            return "Data inserted"
+        except Exception as e:
+            print(f"error {e}")
+            return e
+
     start = DummyOperator(task_id="Start")
     end = DummyOperator(task_id="End")
     data = get_latests_data()
     deparsed = deparse_cmc_data(data)
+    insert_task = insert_data(deparsed)
 
-    start >> data >> deparsed >> end
+    start >> data >> deparsed >> insert_task >> end
 
 
 cmc_dag = coinmarketdag()
