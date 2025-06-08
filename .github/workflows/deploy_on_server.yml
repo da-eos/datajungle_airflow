@@ -1,0 +1,28 @@
+name: Git pull on the server
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dags/**'
+      - 'plugins/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH key
+        env:
+          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          echo "$SERVER_SSH_KEY" > /tmp/server_key
+          chmod 600 /tmp/server_key
+
+      - name: Update code on server
+        env:
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+        run: |
+          ssh -o StrictHostKeyChecking=no -i /tmp/server_key "$SERVER_USER@$SERVER_IP" 'cd ~/datajungle_airflow && git pull origin main'
